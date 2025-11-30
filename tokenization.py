@@ -40,12 +40,15 @@ def get_type(c: str) -> TokenType:
     if c.isdigit() or c == '.':
         return TokenType.NUMBER
     elif c.isalpha():
-        return TokenType.WORD
+        return TokenType.ID
     elif c in BINOP_SYMBOLS:
-        return TokenType.SPECIAL_CHAR
-    elif c in ALL_PARENTHESES:
-        return TokenType.PARENTHESIS
-    raise TypeError("Unrecognized character")
+        return TokenType.OPERATOR
+    elif c in LEFT_PARENTHESES:
+        return TokenType.LPAREN
+    elif c in RIGHT_PARENTHESES:
+        return TokenType.RPAREN
+    else:
+        raise TypeError("Unrecognized character")
 
 
 def tokenize(input_str: str) -> Generator[Token]:
@@ -58,17 +61,18 @@ def tokenize(input_str: str) -> Generator[Token]:
     buff = ''
     buff_type: Optional[TokenType] = None
     # first pass, general parsing
-    while char:
-        if char == ' ':
+    while char is not None:
+        if char.strip() == '':
             char = next(it, None)
             continue
 
         char_type = get_type(char)
-        if (buff != '' and
-            buff_type is not None and
-            (
-                char_type != buff_type or
-                buff_type in {TokenType.SPECIAL_CHAR, TokenType.PARENTHESIS}
+        if (buff != ''
+            and buff_type is not None
+            and (char_type != buff_type
+                 or buff_type in {TokenType.OPERATOR,
+                                  TokenType.LPAREN,
+                                  TokenType.RPAREN}
             )
         ): # push & reset buff
             tokens.append(Token(buff_type, buff))

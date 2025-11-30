@@ -3,10 +3,11 @@ from enum import Enum, auto
 
 
 class TokenType(Enum):
-    WORD = auto(),
-    SPECIAL_CHAR = auto(),
-    PARENTHESIS = auto()
+    ID = auto(),
     NUMBER = auto()
+    OPERATOR = auto(),
+    LPAREN = auto()
+    RPAREN = auto()
 
     def __repr__(self):
         return f"TokenType.{self.name}"
@@ -24,12 +25,4 @@ class Token:
         return f"Token({self.type!r}, {self.value!r})"
 
     def __str__(self):
-        match self.type:
-            case TokenType.WORD:
-                return f"WORD({self.value!r})"
-            case TokenType.SPECIAL_CHAR:
-                return f"SPECIAL_CHAR({self.value!r})"
-            case TokenType.PARENTHESIS:
-                return f"PARENTHESIS({self.value!r})"
-            case TokenType.NUMBER:
-                return f"NUMBER({self.value!r})"
+        return f"{self.type}({self.value!r})"
