@@ -52,6 +52,28 @@ class Multiply(BinaryOperator):
         return n1 * n2
 
 
+class Remainder(BinaryOperator):
+
+    def solve(self) -> float:
+        n1, n2 = self.n1, self.n2
+        if isinstance(n1, MathOperator):
+            n1 = n1.solve()
+        if isinstance(n2, MathOperator):
+            n2 = n2.solve()
+        return n1 % n2
+
+
+class FloorDiv(BinaryOperator):
+
+    def solve(self) -> float:
+        n1, n2 = self.n1, self.n2
+        if isinstance(n1, MathOperator):
+            n1 = n1.solve()
+        if isinstance(n2, MathOperator):
+            n2 = n2.solve()
+        return n1 // n2
+
+
 class Divide(BinaryOperator):
 
     def solve(self) -> float:

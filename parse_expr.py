@@ -1,9 +1,11 @@
-from typing import Any, Iterable, Iterator, Optional
-from binary_operator import Add, BinaryOperator, Divide, Exp, Log, Multiply, Subtract
+from collections import deque
+from typing import Any, Deque, Iterable, Iterator, Optional, Self, Union
+from binary_operator import Add, BinaryOperator, Divide, Exp, FloorDiv, Log, Multiply, Remainder, Subtract
 from expression import Expression
 from math_operator import MathOperator
 from peekable_iterator import PeekableIterator
 from tk import Token
+import tk
 from unary_operator import Cos, Sin, UnaryOperator
 from pprint import pprint
 
@@ -21,7 +23,9 @@ operator_map: dict[str, type[MathOperator]] = {
     '**': Exp,
     'log': Log,
     'cos': Cos, # unary operator
-    'sin': Sin # unary operator
+    'sin': Sin, # unary operator
+    '%': Remainder,
+    '//': FloorDiv,
 }
 
 
@@ -34,6 +38,7 @@ operator_priorities_mapped: dict[int, tuple[type[MathOperator], ...]] = {
     3: (Add, Subtract, ),
 }
 
+
 def map_to_operator(tk: Token) -> Optional[type[MathOperator]]:
     return operator_map.get(tk.x)
 
@@ -42,6 +47,66 @@ def map_to_operator(tk: Token) -> Optional[type[MathOperator]]:
 def is_digit(x: str) -> bool:
     return (x.isdigit() or x == '.')
 
+SPECIAL_CHARS: set[str] = { *operator_map.keys(), *ALL_PARENTHESES }
+SPECIAL_CHARS_LIST: list[str] = list(SPECIAL_CHARS)
+
+def count_closest_match(input: str) -> int:
+    return len([match for match in SPECIAL_CHARS_LIST if input in match])
+
+
+def queue_to_str(segment_stream: Deque[str]) -> str:
+    return ''.join(segment_stream)
+
+
+def tokenize_efficient(segment: str) -> Iterator[Token]:
+    window: Deque[str] = deque()
+    segment_stream = deque(segment)
+    if len(segment_stream) == 0:
+        yield from () 
+        return
+    window.append(segment_stream.popleft())
+    while len(window) > 0:
+        is_special_char = count_closest_match(window[0]) > 0
+        if is_special_char:
+            while (count_closest_match(queue_to_str(window)) > 0 and 
+                   count_closest_match(window[-1]) > 0 and
+                   len(segment_stream) > 0
+               ):
+                window.append(segment_stream.popleft())
+            if len(segment_stream) > 0:
+                remaining = window.pop()
+                yield Token(queue_to_str(window))
+                window.clear()
+                window.append(remaining)
+            elif count_closest_match(window[-1]) > 0:
+                if count_closest_match(queue_to_str(window)) > 0:
+                    yield Token(queue_to_str(window))
+                else:
+                    remaining = window.pop()
+                    yield from (Token(queue_to_str(window)), Token(remaining))
+                window.clear()
+            else:
+                remaining = window.pop()
+                yield from (Token(queue_to_str(window)), Token(remaining))
+                window.clear()
+        else:
+            while (count_closest_match(queue_to_str(window)) == 0 and
+                   count_closest_match(window[-1]) == 0 and
+                   len(segment_stream) > 0
+               ):
+                window.append(segment_stream.popleft())
+            if len(segment_stream) > 0:
+                remaining = window.pop()
+                yield Token(queue_to_str(window))
+                window.clear()
+                window.append(remaining)
+            elif count_closest_match(window[-1]) == 0:
+                yield Token(queue_to_str(window))
+                window.clear()
+            else:
+                remaining = window.pop()
+                yield from (Token(queue_to_str(window)), Token(remaining))
+                window.clear()
 
 
 def tokenize(segment: str) -> Iterator[Token]:
@@ -323,8 +388,22 @@ def parse(curr_expr: Expression) -> MathOperator:
     return next((val[1] for val in expr_map))
 
 
+def run_tokenize_efficient():
+    # 100k
+    expr = ''.join((['5**5'] * 100000))
+    tokens = tokenize_efficient(expr)
+    print(len(list(tokens)))
+    tokens = tokenize(expr)
+    print(len(list(tokens)))
+    # expression = Expression(*tokens)
+    # print(parse(expression))
+    #
+
 def main() -> None:
+    run_tokenize_efficient()
+    return
     expr = '(2.5**((3*(523.06/123+0)*3)**0.1))+(2+2)**3+(4-3)**2+2*sin(5)*cos(83)'
+    #expr = '2.5**(2**(2**3))'
     tokens = tokenize(expr)
     #print(*map(repr, tokenize(expr)))
     expression = Expression(*tokens)

@@ -1,6 +1,6 @@
 from abc import ABCMeta
 from typing import Iterable, Iterator, Optional, Self
-from binary_operator import Add, BinaryOperator, Divide, Exp, Multiply, Subtract
+from binary_operator import Add, BinaryOperator, Divide, Exp, FloorDiv, Multiply, Remainder, Subtract
 from math_operator import MathOperator
 from tk import Token
 from unary_operator import UnaryOperator
@@ -16,12 +16,14 @@ operator_map: dict[str, type[MathOperator]] = {
     '*': Multiply,
     '/': Divide,
     '**': Exp,
+    '%': Remainder,
+    '//': FloorDiv,
 }
 
 
 operator_priorities_mapped: dict[int, tuple[type[MathOperator], ...]] = {
     1: (Exp, ),
-    2: (Multiply, Divide, ),
+    2: (Multiply, Divide, Remainder, FloorDiv),
     3: (Add, Subtract, ),
 }
 
