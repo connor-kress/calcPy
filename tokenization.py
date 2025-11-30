@@ -1,40 +1,33 @@
 from typing import Generator, Optional
 
-from binary_operator import (
-    Add,
-    Divide,
-    Exp,
-    FloorDiv,
-    Log,
-    Multiply,
-    Remainder,
-    Subtract,
-)
 from tk import Token, TokenType
-from unary_operator import Cos, Sin
-
 
 LEFT_PARENTHESES = {'(', '[', '{'}
 RIGHT_PARENTHESES = {')', ']', '}'}
-ALL_PARENTHESES = LEFT_PARENTHESES.union(RIGHT_PARENTHESES)
-
 BINOP_SYMBOLS = {'+', '-', '*', '/', '%'}
-BINOP_SYMBOLS_LONG = {'**', '//'}
-BINOP_SYMBOLS_LONG_LENGTHS: dict[int, set[str]] = {2: {'**', '//'}}
-SPECIAL_WORDS = {'log', 'cos', 'sin'}
 
-OPERATOR_MAP = {
-    '+': Add,
-    '-': Subtract,
-    '*': Multiply,
-    '/': Divide,
-    '**': Exp,
-    'log': Log,
-    'cos': Cos, # unary operator
-    'sin': Sin, # unary operator
-    '%': Remainder,
-    '//': FloorDiv,
-}
+
+class Lexer:
+    def __init__(self, data: str):
+        self.data = data
+        self.pos = 0
+
+    def next(self) -> Optional[str]:
+        if self.pos >= len(self.data):
+            return None
+        self.pos += 1
+        return self.data[self.pos - 1]
+
+    def peek(self) -> Optional[str]:
+        if self.pos >= len(self.data):
+            return None
+        return self.data[self.pos]
+
+    def advance(self) -> None:
+        if self.pos >= len(self.data):
+            raise IndexError("End of input reached")
+        self.pos += 1
+
 
 def get_type(c: str) -> TokenType:
     if c.isdigit() or c == '.':
@@ -51,53 +44,52 @@ def get_type(c: str) -> TokenType:
         raise TypeError("Unrecognized character")
 
 
-def tokenize(input_str: str) -> Generator[Token]:
-    tokens = list[Token]()
-    if len(input_str) == 0:
-        yield from ()
-        return
-    it = iter(input_str)
-    char = next(it, None)
-    buff = ''
-    buff_type: Optional[TokenType] = None
-    # first pass, general parsing
-    while char is not None:
-        if char.strip() == '':
-            char = next(it, None)
+def lex_number(l: Lexer) -> Token:
+    buf = ''
+    while (c := l.peek()) is not None and (c.isdigit() or c == '.'):
+        buf += c
+        l.advance()
+    return Token(TokenType.NUMBER, buf)
+
+
+def lex_id(l: Lexer) -> Token:
+    buf = ''
+    while (c := l.peek()) is not None and c.isalnum():
+        buf += c
+        l.advance()
+    return Token(TokenType.ID, buf)
+
+
+def lex_operator(l: Lexer) -> Token:
+    buf = ''
+    while (c := l.peek()) is not None and c in BINOP_SYMBOLS:
+        buf += c
+        l.advance()
+    return Token(TokenType.OPERATOR, buf)
+
+
+def lex(input_str: str) -> Generator[Token]:
+    l = Lexer(input_str)
+    while (c := l.peek()) is not None:
+        if c.strip() == '':
+            l.advance()
             continue
-
-        char_type = get_type(char)
-        if (buff != ''
-            and buff_type is not None
-            and (char_type != buff_type
-                 or buff_type in {TokenType.OPERATOR,
-                                  TokenType.LPAREN,
-                                  TokenType.RPAREN}
-            )
-        ): # push & reset buff
-            tokens.append(Token(buff_type, buff))
-            buff, buff_type = char, char_type
-        elif (buff != '' and
-              buff_type is not None and
-              char_type == buff_type
-          ): # keep adding: number OR word
-            buff += char
-        elif (buff == '' and 
-              buff_type is None and
-              char_type is not None): # first char
-            buff += char
-            buff_type = char_type
-
-        char = next(it, None)
-
-    if buff != '' and buff_type is not None:
-        tokens.append(Token(buff_type, buff))
-    yield from tokens
+        token_type = get_type(c)
+        match token_type:
+            case TokenType.NUMBER:
+                yield lex_number(l)
+            case TokenType.ID:
+                yield lex_id(l)
+            case TokenType.OPERATOR:
+                yield lex_operator(l)
+            case TokenType.LPAREN | TokenType.RPAREN:
+                l.advance()
+                yield Token(token_type, c)
 
 
 def main():
     expr = 'cos(5.05%4//3)'
-    tokens = list(tokenize(expr))
+    tokens = list(lex(expr))
     for token in tokens:
         print(token)
 
