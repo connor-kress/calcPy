@@ -1,24 +1,29 @@
-from enum import Enum, auto
-from typing import Iterator, Optional
+from typing import Generator, Optional
 
-from binary_operator import Add, Divide, Exp, FloorDiv, Log, Multiply, Remainder, Subtract
-from math_operator import MathOperator
-from tk import Token
+from binary_operator import (
+    Add,
+    Divide,
+    Exp,
+    FloorDiv,
+    Log,
+    Multiply,
+    Remainder,
+    Subtract,
+)
+from tk import Token, TokenType
 from unary_operator import Cos, Sin
-from pprint import pprint
 
 
 LEFT_PARENTHESES = {'(', '[', '{'}
 RIGHT_PARENTHESES = {')', ']', '}'}
 ALL_PARENTHESES = LEFT_PARENTHESES.union(RIGHT_PARENTHESES)
 
-
 BINOP_SYMBOLS = {'+', '-', '*', '/', '%'}
 BINOP_SYMBOLS_LONG = {'**', '//'}
 BINOP_SYMBOLS_LONG_LENGTHS: dict[int, set[str]] = {2: {'**', '//'}}
 SPECIAL_WORDS = {'log', 'cos', 'sin'}
 
-operator_map: dict[str, type[MathOperator]] = {
+OPERATOR_MAP = {
     '+': Add,
     '-': Subtract,
     '*': Multiply,
@@ -30,13 +35,6 @@ operator_map: dict[str, type[MathOperator]] = {
     '%': Remainder,
     '//': FloorDiv,
 }
-
-class TokenType(Enum):
-    WORD = auto(),
-    SPECIAL_CHAR = auto(),
-    PARENTHESIS = auto()
-    NUMBER = auto()
-
 
 def get_type(c: str) -> TokenType:
     if c.isdigit() or c == '.':
@@ -50,8 +48,8 @@ def get_type(c: str) -> TokenType:
     raise TypeError("Unrecognized character")
 
 
-def tokenize(input_str: str) -> Iterator[Token]:
-    tokens = list[tuple[Token, TokenType]]()
+def tokenize(input_str: str) -> Generator[Token]:
+    tokens = list[Token]()
     if len(input_str) == 0:
         yield from ()
         return
@@ -73,7 +71,7 @@ def tokenize(input_str: str) -> Iterator[Token]:
                 buff_type in {TokenType.SPECIAL_CHAR, TokenType.PARENTHESIS}
             )
         ): # push & reset buff
-            tokens.append((Token(buff), buff_type))
+            tokens.append(Token(buff_type, buff))
             buff, buff_type = char, char_type
         elif (buff != '' and
               buff_type is not None and
@@ -89,14 +87,15 @@ def tokenize(input_str: str) -> Iterator[Token]:
         char = next(it, None)
 
     if buff != '' and buff_type is not None:
-        tokens.append((Token(buff), buff_type))
-    yield from (tk for (tk, _) in tokens)
+        tokens.append(Token(buff_type, buff))
+    yield from tokens
 
 
 def main():
     expr = 'cos(5.05%4//3)'
     tokens = list(tokenize(expr))
-    print(tokens)
+    for token in tokens:
+        print(token)
 
 
 if __name__ == '__main__':
