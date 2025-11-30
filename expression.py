@@ -1,9 +1,7 @@
-from abc import ABCMeta
-from typing import Iterable, Iterator, Optional, Self
-from binary_operator import Add, BinaryOperator, Divide, Exp, FloorDiv, Multiply, Remainder, Subtract
+from typing import Iterator, Optional, Self
+from binary_operator import Add, Divide, Exp, FloorDiv, Multiply, Remainder, Subtract
 from math_operator import MathOperator
-from tk import Token
-from unary_operator import UnaryOperator
+from tk import Token, TokenType
 
 LEFT_PARENTHESES = ('(', '[', '{')
 RIGHT_PARENTHESES = (')', ']', '}')
@@ -50,20 +48,20 @@ class Expression:
         """Returns matching rpi to lpi"""
         return next(iter((n - 1
                           for n in range(lpi + 1, len(tokens) + 1)
-                          if (1 + sum(-1 if tk.x in LEFT_PARENTHESES else 1
+                          if (1 + sum(-1 if tk.type == TokenType.LPAREN else 1
                                       for tk in tokens[lpi:n]
-                                      if isinstance(tk, Token) and tk.x in ALL_PARENTHESES
+                                      if isinstance(tk, Token) and tk.value in ALL_PARENTHESES
                                       ) > 0)
-                          and tokens[n - 1] == RIGHT_PARENTHESES[LEFT_PARENTHESES.index(lp_token.x)])), None)
+                          and tokens[n - 1] == RIGHT_PARENTHESES[LEFT_PARENTHESES.index(lp_token.value)])), None)
 
     def get_tokens_of_expression(self) -> list[Token]:
         return [t for t in self.expr if isinstance(t, Token)]
 
     def simplify_conversion(self) -> None:
         tokens: list[Token] = self.get_tokens_of_expression()
-        while any(lp in tokens for lp in map(Token, LEFT_PARENTHESES)):
+        while any(token.type == TokenType.LPAREN in tokens for token in tokens):
             for i, token in enumerate(self.expr):
-                if isinstance(token, Expression) or token.x not in LEFT_PARENTHESES:
+                if isinstance(token, Expression) or token.type != TokenType.LPAREN:
                     continue
                 rpi: Optional[int] = self._get_rpi(i, token, self.expr) # type: ignore
                 if rpi is None:
